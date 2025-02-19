@@ -1,28 +1,29 @@
+/* Base styles */
 body {
     font-family: sans-serif;
-  }
-  
-  table {
+}
+
+table {
     border-collapse: collapse;
     width: 80%;
     margin: 20px auto;
-  }
-  
-  th, td {
+}
+
+th, td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
-  }
-  
-  th {
+}
+
+th {
     background-color: #f2f2f2;
-  }
-  
-  h1 {
+}
+
+h1 {
     text-align: center;
-  }
-  
-  .row-link {
+}
+
+.row-link {
     cursor: pointer;
 }
 
@@ -30,19 +31,42 @@ body {
     background-color: #f0f0f0;
 }
 
-/* Add these rules to your existing style.css */
+/* New custom classes for column widths */
 .segments-col {
     width: 20%;
     font-size: 14px;
-  }
-  
-  .timings-col {
+}
+
+.timings-col {
     width: 10%;
     font-size: 14px;
-  }
-  
-  .layover-col {
+}
+
+.layover-col {
     width: 15%;
     font-size: 14px;
-  }
-  
+}
+
+/* Container for horizontal scrolling on small screens */
+.table-container {
+    overflow-x: auto;
+    margin: 20px auto;
+    width: 90%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    table {
+        width: 100%;
+        font-size: 12px;
+    }
+    th, td {
+        padding: 6px;
+    }
+    h1 {
+        font-size: 20px;
+    }
+    h2, h3 {
+        font-size: 16px;
+    }
+}
