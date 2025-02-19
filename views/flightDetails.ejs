@@ -6,9 +6,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flight Details</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Optional: Style the back button */
+    .back-btn {
+      margin: 20px;
+      padding: 10px 15px;
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .back-btn:hover {
+      background-color: #2980b9;
+    }
+  </style>
 </head>
 
 <body>
+  <!-- Back Button -->
+  <button class="back-btn" onclick="window.location.href='/'">Back</button>
+
   <h1>Flight Details</h1>
   <h2><%= origin %> to <%= destination %> on <%= travelDate %></h2>
 
