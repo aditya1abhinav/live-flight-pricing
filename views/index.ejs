@@ -23,22 +23,14 @@
             </tr>
         </thead>
         <tbody>
-            <% flightData.forEach(flight=> { %>
-                <tr class="row-link" onclick="window.location='/flight/<%= flight.Origin %>/<%= flight.Destination %>/<%= flight.TravelDate %>'">
-                    <td>
-                        <%= flight.Origin %>
-                    </td>
-                    <td>
-                        <%= flight.Destination %>
-                    </td>
-                    <td>
-                        <%= flight.TravelDate %>
-                    </td>
-                    <td>
-                        <%= flight.Class %>
-                    </td>
+            <% flightData.forEach(flight => { %>
+                <tr class="row-link" onclick="window.location='/flight/<%= flight.Origin %>/<%= flight.Destination %>/<%= flight.TravelDate %>/<%= flight.Class %>'">
+                    <td><%= flight.Origin %></td>
+                    <td><%= flight.Destination %></td>
+                    <td><%= flight.TravelDate %></td>
+                    <td><%= flight.Class %></td>
                 </tr>
-                <% }); %>
+            <% }); %>
         </tbody>
     </table>
 </body>

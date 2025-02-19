@@ -13,10 +13,11 @@
     </h2>
 
     <h3>Flight Offers:</h3>
-    <% if (flightOffers.length> 0) { %>
+    <% if (flightOffers.length > 0) { %>
         <table>
             <thead>
                 <tr>
+                    <th>S.No.</th> <!-- Added Serial Number Column -->
                     <th>Aircraft Name</th>
                     <th>Price (INR)</th>
                     <th>Stops</th>
@@ -24,8 +25,11 @@
                 </tr>
             </thead>
             <tbody>
-                <% flightOffers.forEach(offer=> { %>
+                <% flightOffers.forEach((offer, index) => { %> <!-- Added index parameter -->
                     <tr>
+                        <td>
+                            <%= index + 1 %> <!-- Display Serial Number -->
+                        </td>
                         <td>
                             <%= offer.aircraftName %>
                         </td>
@@ -45,21 +49,21 @@
                         </td>
                         <td>
                             <% if (offer.itineraries && offer.itineraries.length > 0) { %>
-                                <% offer.itineraries[0].segments.forEach(segment=> { %>
+                                <% offer.itineraries[0].segments.forEach(segment => { %>
                                     <%= segment.departure.iataCode %> to <%= segment.arrival.iataCode %>
-                                        <br>
-                                            <% }); %>
+                                    <br>
+                                <% }); %>
                             <% } else { %>
                                 Not Available
                             <% } %>
                         </td>
                     </tr>
-                    <% }); %>
-        </tbody>
-    </table>
+                <% }); %>
+            </tbody>
+        </table>
     <% } else { %>
         <p>No flight offers found.</p>
-        <% } %>
+    <% } %>
 </body>
 
 </html>

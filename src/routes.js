@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const csv = require('csvtojson');
-const axios = require('axios'); // For making HTTP requests, including ExchangeRate-API
-require('dotenv').config(); // Load environment variables
+const axios = require('axios');
+require('dotenv').config();
 
 const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY;
 const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET;
@@ -26,18 +26,19 @@ async function getAmadeusToken() {
     }
 }
 
-// Function to get flight offers from Amadeus API
-async function getFlightOffers(origin, destination, travelDate, accessToken) {
+// Function to get flight offers from Amadeus API including flight class
+async function getFlightOffers(origin, destination, travelDate, accessToken, flightClass) {
     try {
         const params = {
             originLocationCode: origin,
             destinationLocationCode: destination,
             departureDate: travelDate,
             adults: 1, // Assuming 1 adult
-            max: 5 // Limiting the number of results for connecting flights
+            max: 250, // Limiting the number of results
+            travelClass: flightClass // API expects values like ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
         };
 
-        console.log("Amadeus API Request Parameters:", params); // Log the parameters
+        console.log("Amadeus API Request Parameters:", params);
 
         const response = await axios.get(
             'https://test.api.amadeus.com/v2/shopping/flight-offers',
@@ -49,7 +50,7 @@ async function getFlightOffers(origin, destination, travelDate, accessToken) {
             }
         );
 
-        console.log("Amadeus API Response:", response.data); // Log the full response
+        console.log("Amadeus API Response:", response.data);
         return response.data;
     } catch (error) {
         console.error('Error fetching flight offers:', error.response ? error.response.data : error.message);
@@ -75,8 +76,20 @@ async function convertEURtoINR(amount) {
     }
 }
 
+// Helper function to format flight class values.
+// This converts values like "PREMIUM ECONOMY" to "PREMIUM_ECONOMY"
+// and maps "FIRST CLASS" to "FIRST".
+function formatFlightClass(flightClass) {
+    flightClass = flightClass.trim();
+    if (flightClass.toUpperCase() === 'FIRST CLASS') {
+        return 'FIRST';
+    }
+    return flightClass.replace(/\s+/g, '_').toUpperCase();
+}
+
 router.get('/', async (req, res) => {
     try {
+        // CSV columns are "Origin", "Destination", "Travel Date", and "Class"
         const flightData = await csv().fromFile('./data/flights.csv');
         res.render('index', { flightData: flightData });
     } catch (error) {
@@ -85,44 +98,53 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/flight/:origin/:destination/:travelDate', async (req, res) => {
-    const { origin, destination, travelDate } = req.params;
+// Flight details route including flight class as a URL parameter
+// Expected URL format: /flight/Origin/Destination/TravelDate/Class
+router.get('/flight/:origin/:destination/:travelDate/:flightClass', async (req, res) => {
+    const { origin, destination, travelDate, flightClass } = req.params;
+    // Format the flight class (e.g., "PREMIUM ECONOMY" becomes "PREMIUM_ECONOMY" and "FIRST CLASS" becomes "FIRST")
+    const formattedFlightClass = formatFlightClass(flightClass);
 
     try {
         const accessToken = await getAmadeusToken();
-        
-        // Format the travel date to YYYY-MM-DD
+
+        // Format the travel date from DD-MM-YYYY to YYYY-MM-DD
         const formattedTravelDate = formatDate(travelDate);
 
-        // Log parameters before calling Amadeus API
-        console.log(`Fetching flight offers with parameters:
+        console.log(`Fetching flight offers with:
             Origin: ${origin},
             Destination: ${destination},
-            Departure Date: ${formattedTravelDate}`);
+            Departure Date: ${formattedTravelDate},
+            Class: ${formattedFlightClass}`);
 
         const flightOffers = await getFlightOffers(
             origin,
             destination,
-            formattedTravelDate, // Use the formatted date
-            accessToken
+            formattedTravelDate,
+            accessToken,
+            formattedFlightClass
         );
 
-        // Convert prices to INR and extract aircraft name
+        // Convert prices to INR and extract aircraft name for each offer
         const flightDetails = await Promise.all(
             flightOffers.data.map(async (offer) => {
                 const priceEUR = offer.price && offer.price.total ? parseFloat(offer.price.total) : 0;
                 const priceINR = await convertEURtoINR(priceEUR);
                 let aircraftName = 'Unknown';
 
-                // Extract aircraft name from the first segment (assuming all segments use the same aircraft)
-                if (offer.itineraries && offer.itineraries[0] && offer.itineraries[0].segments && offer.itineraries[0].segments[0]) {
+                if (
+                    offer.itineraries &&
+                    offer.itineraries[0] &&
+                    offer.itineraries[0].segments &&
+                    offer.itineraries[0].segments[0]
+                ) {
                     const aircraftCode = offer.itineraries[0].segments[0].aircraft.code;
                     aircraftName = flightOffers.dictionaries.aircraft[aircraftCode] || 'Unknown';
                 }
 
                 return {
                     ...offer,
-                    priceINR: priceINR.toFixed(2), // Convert to string with 2 decimal places
+                    priceINR: priceINR.toFixed(2),
                     aircraftName,
                 };
             })
@@ -132,7 +154,7 @@ router.get('/flight/:origin/:destination/:travelDate', async (req, res) => {
             origin,
             destination,
             travelDate,
-            flightOffers: flightDetails || [], // Pass flight details to the template
+            flightOffers: flightDetails || [],
         });
     } catch (error) {
         console.error('Error fetching flight details:', error.response ? error.response.data : error.message);
