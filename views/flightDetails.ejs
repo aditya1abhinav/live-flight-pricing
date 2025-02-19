@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Flight Details</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <h1>Flight Details</h1>
+    <h2>
+        <%= origin %> to <%= destination %> on <%= travelDate %>
+    </h2>
+
+    <h3>Flight Offers:</h3>
+    <% if (flightOffers.length> 0) { %>
+        <table>
+            <thead>
+                <tr>
+                    <th>Aircraft Name</th>
+                    <th>Price (INR)</th>
+                    <th>Stops</th>
+                    <th>Segments</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% flightOffers.forEach(offer=> { %>
+                    <tr>
+                        <td>
+                            <%= offer.aircraftName %>
+                        </td>
+                        <td>
+                            <% if (offer.priceINR) { %>
+                                <%= offer.priceINR %>
+                            <% } else { %>
+                                Not Available
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (offer.itineraries && offer.itineraries.length > 0) { %>
+                                <%= offer.itineraries[0].segments.length - 1 %>
+                            <% } else { %>
+                                Not Available
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (offer.itineraries && offer.itineraries.length > 0) { %>
+                                <% offer.itineraries[0].segments.forEach(segment=> { %>
+                                    <%= segment.departure.iataCode %> to <%= segment.arrival.iataCode %>
+                                        <br>
+                                            <% }); %>
+                            <% } else { %>
+                                Not Available
+                            <% } %>
+                        </td>
+                    </tr>
+                    <% }); %>
+        </tbody>
+    </table>
+    <% } else { %>
+        <p>No flight offers found.</p>
+        <% } %>
+</body>
+
+</html>

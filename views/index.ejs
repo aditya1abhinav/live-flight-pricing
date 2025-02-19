@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Flight Data</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .row-link {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Flight Information</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Origin</th>
+                <th>Destination</th>
+                <th>Travel Date</th>
+                <th>Class</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% flightData.forEach(flight=> { %>
+                <tr class="row-link" onclick="window.location='/flight/<%= flight.Origin %>/<%= flight.Destination %>/<%= flight.TravelDate %>'">
+                    <td>
+                        <%= flight.Origin %>
+                    </td>
+                    <td>
+                        <%= flight.Destination %>
+                    </td>
+                    <td>
+                        <%= flight.TravelDate %>
+                    </td>
+                    <td>
+                        <%= flight.Class %>
+                    </td>
+                </tr>
+                <% }); %>
+        </tbody>
+    </table>
+</body>
+
+</html>
