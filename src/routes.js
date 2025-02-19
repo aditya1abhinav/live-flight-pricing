@@ -77,7 +77,7 @@ async function convertEURtoINR(amount) {
 }
 
 // Helper function to format flight class values.
-// This converts values like "PREMIUM ECONOMY" to "PREMIUM_ECONOMY"
+// Converts "PREMIUM ECONOMY" to "PREMIUM_ECONOMY"
 // and maps "FIRST CLASS" to "FIRST".
 function formatFlightClass(flightClass) {
     flightClass = flightClass.trim();
@@ -85,6 +85,25 @@ function formatFlightClass(flightClass) {
         return 'FIRST';
     }
     return flightClass.replace(/\s+/g, '_').toUpperCase();
+}
+
+// Helper function to convert a given ISO datetime string to IST time (formatted as HH:MM)
+function convertToIST(timeStr) {
+    const date = new Date(timeStr);
+    return date.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+    });
+}
+
+// Helper function to format a time difference (in milliseconds) to hours and minutes.
+function formatLayover(diffMs) {
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
 }
 
 router.get('/', async (req, res) => {
@@ -125,27 +144,54 @@ router.get('/flight/:origin/:destination/:travelDate/:flightClass', async (req, 
             formattedFlightClass
         );
 
-        // Convert prices to INR and extract aircraft name for each offer
+        // Process each offer: convert price, extract aircraft/airline names, add IST timings, and calculate layover durations.
         const flightDetails = await Promise.all(
             flightOffers.data.map(async (offer) => {
                 const priceEUR = offer.price && offer.price.total ? parseFloat(offer.price.total) : 0;
                 const priceINR = await convertEURtoINR(priceEUR);
                 let aircraftName = 'Unknown';
+                let airlineName = 'Unknown';
+                let layovers = []; // Will store layover durations as strings
 
                 if (
                     offer.itineraries &&
                     offer.itineraries[0] &&
                     offer.itineraries[0].segments &&
-                    offer.itineraries[0].segments[0]
+                    offer.itineraries[0].segments.length > 0
                 ) {
-                    const aircraftCode = offer.itineraries[0].segments[0].aircraft.code;
+                    const segments = offer.itineraries[0].segments;
+                    
+                    // Extract aircraft name from the first segment.
+                    const aircraftCode = segments[0].aircraft.code;
                     aircraftName = flightOffers.dictionaries.aircraft[aircraftCode] || 'Unknown';
+
+                    // Extract airline name from the first segment.
+                    const carrierCode = segments[0].carrierCode;
+                    airlineName = flightOffers.dictionaries.carriers[carrierCode] || 'Unknown';
+
+                    // For each segment, add departure and arrival times in IST.
+                    segments.forEach(segment => {
+                        segment.departureIST = convertToIST(segment.departure.at);
+                        segment.arrivalIST = convertToIST(segment.arrival.at);
+                    });
+
+                    // Calculate layover durations if there are connecting segments.
+                    if (segments.length > 1) {
+                        for (let i = 0; i < segments.length - 1; i++) {
+                            const arrival = new Date(segments[i].arrival.at);
+                            const nextDeparture = new Date(segments[i + 1].departure.at);
+                            const diffMs = nextDeparture - arrival;
+                            layovers.push(formatLayover(diffMs));
+                        }
+                    }
                 }
 
                 return {
                     ...offer,
                     priceINR: priceINR.toFixed(2),
                     aircraftName,
+                    airlineName,
+                    layovers // An array; if empty, no layover exists.
                 };
             })
         );
