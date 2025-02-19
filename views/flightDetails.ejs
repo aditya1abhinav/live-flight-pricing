@@ -2,92 +2,92 @@
 <html>
 
 <head>
-    <title>Flight Details</title>
-    <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight Details</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
-    <h1>Flight Details</h1>
-    <h2>
-        <%= origin %> to <%= destination %> on <%= travelDate %>
-    </h2>
+  <h1>Flight Details</h1>
+  <h2><%= origin %> to <%= destination %> on <%= travelDate %></h2>
 
-    <h3>Flight Offers:</h3>
-    <% if (flightOffers.length > 0) { %>
-        <table>
-            <thead>
-                <tr>
-                    <th>S.No.</th>
-                    <th>Aircraft Name</th>
-                    <th>Airline Name</th>
-                    <th>Price (INR)</th>
-                    <th>Stops</th>
-                    <th>Segments</th>
-                    <th>Timings (IST)</th>
-                    <th>Layover Duration</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% flightOffers.forEach((offer, index) => { %>
-                    <tr>
-                        <td><%= index + 1 %></td>
-                        <td><%= offer.aircraftName %></td>
-                        <td><%= offer.airlineName %></td>
-                        <td>
-                            <% if (offer.priceINR) { %>
-                                <%= offer.priceINR %>
-                            <% } else { %>
-                                Not Available
-                            <% } %>
-                        </td>
-                        <td>
-                            <% if (offer.itineraries && offer.itineraries.length > 0) { %>
-                                <%= offer.itineraries[0].segments.length - 1 %>
-                            <% } else { %>
-                                Not Available
-                            <% } %>
-                        </td>
-                        <!-- Segments Column: Route and Flight Identification -->
-                        <td>
-                            <% if (offer.itineraries && offer.itineraries.length > 0) { %>
-                                <% offer.itineraries[0].segments.forEach(segment => { %>
-                                    <%= segment.departure.iataCode %> to <%= segment.arrival.iataCode %>
-                                    (Flight: <%= segment.carrierCode %> <%= segment.number %>)
-                                    <br>
-                                <% }); %>
-                            <% } else { %>
-                                Not Available
-                            <% } %>
-                        </td>
-                        <!-- Timings Column: Departure and Arrival IST for each segment -->
-                        <td>
-                            <% if (offer.itineraries && offer.itineraries.length > 0) { %>
-                                <% offer.itineraries[0].segments.forEach(segment => { %>
-                                    <%= segment.departureIST %> to <%= segment.arrivalIST %>
-                                    <br>
-                                <% }); %>
-                            <% } else { %>
-                                Not Available
-                            <% } %>
-                        </td>
-                        <!-- Layover Duration Column: Display computed layovers -->
-                        <td>
-                            <% if (offer.layovers && offer.layovers.length > 0) { %>
-                                <% offer.layovers.forEach(layover => { %>
-                                    <%= layover %>
-                                    <br>
-                                <% }); %>
-                            <% } else { %>
-                                N/A
-                            <% } %>
-                        </td>
-                    </tr>
+  <h3>Flight Offers:</h3>
+  <% if (flightOffers.length > 0) { %>
+    <table>
+      <thead>
+        <tr>
+          <th>S.No.</th>
+          <th>Aircraft Name</th>
+          <th>Airline Name</th>
+          <th>Price (INR)</th>
+          <th>Stops</th>
+          <th class="segments-col">Segments</th>
+          <th class="timings-col">Timings (IST)</th>
+          <th class="layover-col">Layover Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% flightOffers.forEach((offer, index) => { %>
+          <tr>
+            <td><%= index + 1 %></td>
+            <td><%= offer.aircraftName %></td>
+            <td><%= offer.airlineName %></td>
+            <td>
+              <% if (offer.priceINR) { %>
+                <%= offer.priceINR %>
+              <% } else { %>
+                Not Available
+              <% } %>
+            </td>
+            <td>
+              <% if (offer.itineraries && offer.itineraries.length > 0) { %>
+                <%= offer.itineraries[0].segments.length - 1 %>
+              <% } else { %>
+                Not Available
+              <% } %>
+            </td>
+            <!-- Segments Column: Route and Flight Identification -->
+            <td class="segments-col">
+              <% if (offer.itineraries && offer.itineraries.length > 0) { %>
+                <% offer.itineraries[0].segments.forEach(segment => { %>
+                  <%= segment.departure.iataCode %> to <%= segment.arrival.iataCode %>
+                  (Flight: <%= segment.carrierCode %> <%= segment.number %>)
+                  <br>
                 <% }); %>
-            </tbody>
-        </table>
-    <% } else { %>
-        <p>No flight offers found.</p>
-    <% } %>
+              <% } else { %>
+                Not Available
+              <% } %>
+            </td>
+            <!-- Timings Column: Departure and Arrival IST for each segment -->
+            <td class="timings-col">
+              <% if (offer.itineraries && offer.itineraries.length > 0) { %>
+                <% offer.itineraries[0].segments.forEach(segment => { %>
+                  <%= segment.departureIST %> to <%= segment.arrivalIST %>
+                  <br>
+                <% }); %>
+              <% } else { %>
+                Not Available
+              <% } %>
+            </td>
+            <!-- Layover Duration Column: Display computed layovers -->
+            <td class="layover-col">
+              <% if (offer.layovers && offer.layovers.length > 0) { %>
+                <% offer.layovers.forEach(layover => { %>
+                  <%= layover %>
+                  <br>
+                <% }); %>
+              <% } else { %>
+                N/A
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <p>No flight offers found.</p>
+  <% } %>
 </body>
 
 </html>

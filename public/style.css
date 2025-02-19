@@ -29,3 +29,20 @@ body {
 .row-link:hover {
     background-color: #f0f0f0;
 }
+
+/* Add these rules to your existing style.css */
+.segments-col {
+    width: 20%;
+    font-size: 14px;
+  }
+  
+  .timings-col {
+    width: 10%;
+    font-size: 14px;
+  }
+  
+  .layover-col {
+    width: 15%;
+    font-size: 14px;
+  }
+  
