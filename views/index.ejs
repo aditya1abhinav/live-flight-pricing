@@ -2,37 +2,106 @@
 <html>
 
 <head>
-    <title>Flight Data</title>
-    <link rel="stylesheet" href="/style.css">
-    <style>
-        .row-link {
-            cursor: pointer;
-        }
-    </style>
+  <title>Flight Data</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .row-link {
+      cursor: pointer;
+    }
+    /* Style for the search form */
+    form {
+      margin: 20px auto;
+      width: 80%;
+      text-align: center;
+    }
+    form label {
+      margin: 0 5px;
+    }
+    form input, form select {
+      margin: 5px;
+      padding: 5px;
+    }
+    form button {
+      padding: 5px 10px;
+      margin: 5px;
+    }
+  </style>
 </head>
 
 <body>
-    <h1>Flight Information</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Origin</th>
-                <th>Destination</th>
-                <th>Travel Date</th>
-                <th>Class</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% flightData.forEach(flight => { %>
-                <tr class="row-link" onclick="window.location='/flight/<%= flight.Origin %>/<%= flight.Destination %>/<%= flight.TravelDate %>/<%= flight.Class %>'">
-                    <td><%= flight.Origin %></td>
-                    <td><%= flight.Destination %></td>
-                    <td><%= flight.TravelDate %></td>
-                    <td><%= flight.Class %></td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
+  <h1>Flight Information</h1>
+  
+  <!-- Dynamic Search Form -->
+  <form id="searchForm" onsubmit="handleSearch(event)">
+    <label for="origin">Origin:</label>
+    <input type="text" id="origin" name="origin" required>
+
+    <label for="destination">Destination:</label>
+    <input type="text" id="destination" name="destination" required>
+
+    <label for="travelDate">Travel Date:</label>
+    <!-- Using type="date" for a calendar picker -->
+    <input type="date" id="travelDate" name="travelDate" required>
+
+    <label for="flightClass">Class:</label>
+    <select id="flightClass" name="flightClass" required>
+      <option value="ECONOMY">ECONOMY</option>
+      <option value="PREMIUM ECONOMY">PREMIUM ECONOMY</option>
+      <option value="BUSINESS">BUSINESS</option>
+      <option value="FIRST CLASS">FIRST CLASS</option>
+    </select>
+
+    <button type="submit">Search</button>
+  </form>
+
+  <!-- CSV Data Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Origin</th>
+        <th>Destination</th>
+        <th>Travel Date</th>
+        <th>Class</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% flightData.forEach(flight => { %>
+        <tr class="row-link" onclick="window.location='/flight/<%= flight.Origin %>/<%= flight.Destination %>/<%= flight.TravelDate %>/<%= flight.Class %>'">
+          <td><%= flight.Origin %></td>
+          <td><%= flight.Destination %></td>
+          <td><%= flight.TravelDate %></td>
+          <td><%= flight.Class %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <script>
+    function handleSearch(event) {
+      event.preventDefault();
+      const origin = document.getElementById('origin').value.trim();
+      const destination = document.getElementById('destination').value.trim();
+      
+      // Get the raw date in YYYY-MM-DD format from the date picker.
+      const rawDate = document.getElementById('travelDate').value.trim();
+      // Convert raw date to DD-MM-YYYY format
+      let travelDate = rawDate;
+      if(rawDate) {
+        const parts = rawDate.split('-');
+        // parts[0]=YYYY, parts[1]=MM, parts[2]=DD
+        travelDate = parts[2] + '-' + parts[1] + '-' + parts[0];
+      }
+      
+      const flightClass = document.getElementById('flightClass').value.trim();
+
+      // Build the URL using the provided values and redirect
+      const url = '/flight/' + encodeURIComponent(origin) + '/' +
+                  encodeURIComponent(destination) + '/' +
+                  encodeURIComponent(travelDate) + '/' +
+                  encodeURIComponent(flightClass);
+      window.location.href = url;
+    }
+  </script>
 </body>
 
 </html>
