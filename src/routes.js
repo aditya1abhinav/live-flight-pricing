@@ -2,57 +2,107 @@ const express = require('express');
 const router = express.Router();
 const csv = require('csvtojson');
 const axios = require('axios');
-const path = require('path'); // Use path for absolute paths
+const path = require('path'); // For absolute file paths
 require('dotenv').config();
 
-const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY;
-const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET;
+const DUFFEL_ACCESS_TOKEN = process.env.DUFFEL_ACCESS_TOKEN;
 
-// Function to fetch Amadeus access token
-async function getAmadeusToken() {
-  try {
-    const response = await axios.post(
-      'https://test.api.amadeus.com/v1/security/oauth2/token',
-      `grant_type=client_credentials&client_id=${AMADEUS_API_KEY}&client_secret=${AMADEUS_API_SECRET}`,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    );
-    return response.data.access_token;
-  } catch (error) {
-    console.error('Error fetching Amadeus token:', error);
-    throw error;
-  }
-}
+// BA Fare Class Mappings:
+const BARevenueMapping = {
+  "F": "First Class Revenue",
+  "A": "First Class Revenue",
+  "J": "Business Class Revenue",
+  "C": "Business Class Revenue",
+  "D": "Business Class Revenue",
+  "R": "Business Class Revenue",
+  "W": "Premium Economy Revenue",
+  "E": "Premium Economy Revenue",
+  "T": "Premium Economy Revenue",
+  "Y": "Economy Revenue",
+  "B": "Economy Revenue",
+  "H": "Economy Revenue",
+  "K": "Economy Revenue",
+  "M": "Economy Revenue",
+  "L": "Economy Revenue",
+  "V": "Economy Revenue",
+  "S": "Economy Revenue",
+  "N": "Economy Revenue",
+  "Q": "Economy Revenue",
+  "O": "Economy Revenue"
+};
 
-// Function to get flight offers from Amadeus API including flight class
-async function getFlightOffers(origin, destination, travelDate, accessToken, flightClass) {
+const BAAwardMapping = {
+  "U": "Economy Award",
+  "X": "Premium Economy Award",
+  "P": "Business Award",
+  "Z": "First Class Award"
+};
+
+// Airline code to full name mapping
+const airlineCodeMapping = {
+  "BA": "British Airways",
+  "AA": "American Airlines",
+  "DL": "Delta Air Lines",
+  "UA": "United Airlines",
+  "LH": "Lufthansa",
+  "AF": "Air France",
+  "EK": "Emirates",
+  "QR": "Qatar Airways",
+  "SQ": "Singapore Airlines",
+  "CX": "Cathay Pacific",
+  // Add more mappings as needed
+};
+
+// Function to get flight offers from Duffel API including flight class
+async function getFlightOffers(origin, destination, travelDate, flightClass, limit=100) {
   try {
     const params = {
-      originLocationCode: origin,
-      destinationLocationCode: destination,
-      departureDate: travelDate,
-      adults: 1, // Assuming 1 adult
-      max: 250, // Limiting the number of results
-      travelClass: flightClass // API expects values like ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+      data: {
+        slices: [
+          {
+            origin,
+            destination,
+            departure_date: travelDate,
+          },
+        ],
+        passengers: [
+          {
+            type: 'adult',
+          },
+        ],
+        cabin_class: flightClass.toLowerCase(), // API expects values like economy, premium_economy, business, first
+      }
     };
 
-    console.log("Amadeus API Request Parameters:", params);
+    console.log("Duffel API Request Parameters:", params);
 
-    const response = await axios.get(
-      'https://test.api.amadeus.com/v2/shopping/flight-offers',
+    const response = await axios.post(
+      'https://api.duffel.com/air/offer_requests',
+      params,
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${DUFFEL_ACCESS_TOKEN}`,
+          'Duffel-Version': 'v1',
+          'Content-Type': 'application/json',
         },
-        params: params,
       }
     );
 
-    console.log("Amadeus API Response:", response.data);
-    return response.data;
+    const offerRequestId = response.data.data.id;
+
+    // Fetch the offers using the offer request ID
+    const offersResponse = await axios.get(
+      `https://api.duffel.com/air/offers?offer_request_id=${offerRequestId}&limit=${limit}`,
+      {
+        headers: {
+          Authorization: `Bearer ${DUFFEL_ACCESS_TOKEN}`,
+          'Duffel-Version': 'v1',
+        },
+      }
+    );
+
+    console.log("Duffel API Offers Response:", offersResponse.data);
+    return offersResponse.data;
   } catch (error) {
     console.error('Error fetching flight offers:', error.response ? error.response.data : error.message);
     throw error;
@@ -78,8 +128,6 @@ async function convertEURtoINR(amount) {
 }
 
 // Helper function to format flight class values.
-// Converts "PREMIUM ECONOMY" to "PREMIUM_ECONOMY"
-// and maps "FIRST CLASS" to "FIRST".
 function formatFlightClass(flightClass) {
   flightClass = flightClass.trim();
   if (flightClass.toUpperCase() === 'FIRST CLASS') {
@@ -88,7 +136,7 @@ function formatFlightClass(flightClass) {
   return flightClass.replace(/\s+/g, '_').toUpperCase();
 }
 
-// Helper function to convert a given ISO datetime string to IST (formatted as HH:MM)
+// Helper function to convert an ISO datetime string to IST (HH:MM)
 function convertToIST(timeStr) {
   const date = new Date(timeStr);
   return date.toLocaleString('en-IN', { 
@@ -99,7 +147,7 @@ function convertToIST(timeStr) {
   });
 }
 
-// Helper function to format a time difference (in milliseconds) to hours and minutes.
+// Helper function to format a time difference (ms) to hours and minutes.
 function formatLayover(diffMs) {
   const totalMinutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(totalMinutes / 60);
@@ -110,8 +158,8 @@ function formatLayover(diffMs) {
 // Route to render the homepage from CSV data
 router.get('/', async (req, res) => {
   try {
-    // Build the absolute path to your CSV file.
     const csvFilePath = path.join(__dirname, '../data/flights.csv');
+    console.log("CSV File Path:", csvFilePath);
     const flightData = await csv().fromFile(csvFilePath);
     res.render('index', { flightData: flightData });
   } catch (error) {
@@ -121,14 +169,12 @@ router.get('/', async (req, res) => {
 });
 
 // Flight details route including flight class as a URL parameter
-// Expected URL format: /flight/Origin/Destination/TravelDate/Class
 router.get('/flight/:origin/:destination/:travelDate/:flightClass', async (req, res) => {
   const { origin, destination, travelDate, flightClass } = req.params;
-  // Format the flight class (e.g., "PREMIUM ECONOMY" becomes "PREMIUM_ECONOMY", "FIRST CLASS" becomes "FIRST")
   const formattedFlightClass = formatFlightClass(flightClass);
+  const airlineFilter = req.query.airline ? req.query.airline.trim().toLowerCase() : '';
 
   try {
-    const accessToken = await getAmadeusToken();
     const formattedTravelDate = formatDate(travelDate);
 
     console.log(`Fetching flight offers with:
@@ -141,43 +187,68 @@ router.get('/flight/:origin/:destination/:travelDate/:flightClass', async (req, 
       origin,
       destination,
       formattedTravelDate,
-      accessToken,
       formattedFlightClass
     );
 
-    // Process each offer: convert price, extract aircraft/airline names, add IST timings, and calculate layover durations.
+    // Process each offer as before (converting prices, extracting names, timings, layovers, etc.)
     const flightDetails = await Promise.all(
       flightOffers.data.map(async (offer) => {
-        const priceEUR = offer.price && offer.price.total ? parseFloat(offer.price.total) : 0;
+        const priceEUR = offer.total_amount ? parseFloat(offer.total_amount) : 0;
         const priceINR = await convertEURtoINR(priceEUR);
         let aircraftName = 'Unknown';
         let airlineName = 'Unknown';
-        let layovers = []; // Array to store layover durations
+        let layovers = [];
+        let timings = [];
+        let stops = 0;
+        let fareDescription = 'N/A';
+        let fareBasisCode = 'N/A';
+        let numberOfSeatsAvailable = 'N/A';
 
         if (
-          offer.itineraries &&
-          offer.itineraries[0] &&
-          offer.itineraries[0].segments &&
-          offer.itineraries[0].segments.length > 0
+          offer.slices &&
+          offer.slices[0] &&
+          offer.slices[0].segments &&
+          offer.slices[0].segments.length > 0
         ) {
-          const segments = offer.itineraries[0].segments;
-          // Extract aircraft and airline names from the first segment
-          const aircraftCode = segments[0].aircraft.code;
-          aircraftName = flightOffers.dictionaries.aircraft[aircraftCode] || 'Unknown';
-          const carrierCode = segments[0].carrierCode;
-          airlineName = flightOffers.dictionaries.carriers[carrierCode] || 'Unknown';
+          const segments = offer.slices[0].segments;
+          stops = segments.length - 1;
 
-          // Add departure and arrival IST timings for each segment.
+          // Extract aircraft and airline names from the first segment
+          const aircraftCode = segments[0].aircraft?.code;
+          aircraftName = segments[0].aircraft?.name || 'Unknown';
+          const carrierCode = segments[0].operating_carrier?.iata_code;
+          airlineName = segments[0].operating_carrier?.name || 'Unknown';
+
+          // Add IST timings and map fare description for each segment.
           segments.forEach(segment => {
-            segment.departureIST = convertToIST(segment.departure.at);
-            segment.arrivalIST = convertToIST(segment.arrival.at);
+            segment.departureIST = convertToIST(segment.departing_at);
+            segment.arrivalIST = convertToIST(segment.arriving_at);
+            timings.push(`${segment.departureIST} to ${segment.arrivalIST}`);
+
+            // Check for booking class codes and map to BA's fare structure
+            const bookingCode = segment.cabin_class_marketing_name || segment.cabin_class;
+            if (carrierCode === 'BA' && bookingCode) {
+              if (BARevenueMapping[bookingCode]) {
+                fareDescription = `${BARevenueMapping[bookingCode]} - "${bookingCode}"`;
+              } else if (BAAwardMapping[bookingCode]) {
+                fareDescription = `${BAAwardMapping[bookingCode]} - "${bookingCode}"`;
+              } else {
+                fareDescription = bookingCode;
+              }
+            }
+
+            // Extract fare basis code and number of seats available
+            if (segment.passengers && segment.passengers.length > 0) {
+              fareBasisCode = segment.passengers[0].fare_basis_code || 'N/A';
+              numberOfSeatsAvailable = segment.passengers[0].cabin.amenities.seat.pitch || 'N/A';
+            }
           });
 
           // Calculate layover durations if there are connecting segments.
           if (segments.length > 1) {
             for (let i = 0; i < segments.length - 1; i++) {
-              const arrival = new Date(segments[i].arrival.at);
-              const nextDeparture = new Date(segments[i + 1].departure.at);
+              const arrival = new Date(segments[i].arriving_at);
+              const nextDeparture = new Date(segments[i + 1].departing_at);
               const diffMs = nextDeparture - arrival;
               layovers.push(formatLayover(diffMs));
             }
@@ -186,19 +257,33 @@ router.get('/flight/:origin/:destination/:travelDate/:flightClass', async (req, 
 
         return {
           ...offer,
+          id: offer.id, // Include the flight id
           priceINR: priceINR.toFixed(2),
           aircraftName,
           airlineName,
-          layovers
+          stops,
+          timings,
+          layovers,
+          fareBasisCode,
+          numberOfSeatsAvailable
         };
       })
     );
+
+    // If an airline filter was provided, filter the flight offers based on airlineName or airline code.
+    let filteredFlightDetails = flightDetails;
+    if (airlineFilter) {
+      const airlineFullName = airlineCodeMapping[airlineFilter.toUpperCase()] || airlineFilter;
+      filteredFlightDetails = flightDetails.filter(offer =>
+        offer.airlineName.toLowerCase().includes(airlineFullName.toLowerCase())
+      );
+    }
 
     res.render('flightDetails', {
       origin,
       destination,
       travelDate,
-      flightOffers: flightDetails || [],
+      flightOffers: filteredFlightDetails || [],
     });
   } catch (error) {
     console.error('Error fetching flight details:', error.response ? error.response.data : error.message);

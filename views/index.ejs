@@ -55,7 +55,7 @@
     <input type="text" id="destination" name="destination" required>
 
     <label for="travelDate">Travel Date:</label>
-    <!-- HTML5 date picker for a calendar picker -->
+    <!-- HTML5 date picker -->
     <input type="date" id="travelDate" name="travelDate" required>
 
     <label for="flightClass">Class:</label>
@@ -65,6 +65,10 @@
       <option value="BUSINESS">BUSINESS</option>
       <option value="FIRST CLASS">FIRST CLASS</option>
     </select>
+    
+    <!-- New Airline filter input -->
+    <label for="airline">Airline (Optional):</label>
+    <input type="text" id="airline" name="airline" placeholder="e.g. BA">
 
     <button type="submit">Search</button>
   </form>
@@ -89,8 +93,8 @@
             <td>
               <div class="date-update">
                 <% 
-                  // Default the date picker to the current date (in YYYY-MM-DD format)
-                  const currentDate = new Date().toISOString().split('T')[0];
+                  // Default the date picker to the current date in YYYY-MM-DD format
+                  const currentDate = new Date().toISOString().split('T')[0]; 
                 %>
                 <input type="date" id="date-<%= index %>" value="<%= currentDate %>">
                 <button onclick="updateRow(event, '<%= flight.Origin %>', '<%= flight.Destination %>', '<%= flight.Class %>', 'date-<%= index %>')">
@@ -110,32 +114,36 @@
       event.preventDefault();
       const origin = document.getElementById('origin').value.trim();
       const destination = document.getElementById('destination').value.trim();
-
+      
       // Get the date in YYYY-MM-DD from the date picker
       const rawDate = document.getElementById('travelDate').value.trim();
       let travelDate = rawDate;
       if (rawDate) {
         const parts = rawDate.split('-'); // parts[0]=YYYY, parts[1]=MM, parts[2]=DD
-        // Convert to DD-MM-YYYY format
-        travelDate = parts[2] + '-' + parts[1] + '-' + parts[0];
+        travelDate = parts[2] + '-' + parts[1] + '-' + parts[0]; // Convert to DD-MM-YYYY
       }
+      
       const flightClass = document.getElementById('flightClass').value.trim();
-      const url = '/flight/' + encodeURIComponent(origin) + '/' +
-                  encodeURIComponent(destination) + '/' +
-                  encodeURIComponent(travelDate) + '/' +
-                  encodeURIComponent(flightClass);
+      const airline = document.getElementById('airline').value.trim(); // New optional field
+
+      // Build the URL; if an airline filter is provided, add it as a query parameter.
+      let url = '/flight/' + encodeURIComponent(origin) + '/' +
+                encodeURIComponent(destination) + '/' +
+                encodeURIComponent(travelDate) + '/' +
+                encodeURIComponent(flightClass);
+      if (airline) {
+        url += '?airline=' + encodeURIComponent(airline);
+      }
       window.location.href = url;
     }
 
-    // Handles updating the travel date for a specific CSV row
+    // Handles updating the travel date for a specific CSV row.
     function updateRow(event, origin, destination, flightClass, inputId) {
-      // Prevent any parent row click events
       event.stopPropagation();
       const input = document.getElementById(inputId);
       const rawDate = input.value; // This value is in YYYY-MM-DD format.
       if (rawDate) {
         const parts = rawDate.split('-'); // parts[0]=YYYY, parts[1]=MM, parts[2]=DD
-        // Convert the selected date to DD-MM-YYYY format.
         const travelDate = parts[2] + '-' + parts[1] + '-' + parts[0];
         const url = '/flight/' + encodeURIComponent(origin) + '/' +
                     encodeURIComponent(destination) + '/' +
